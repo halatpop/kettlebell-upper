@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KB Upper">
+<meta name="theme-color" content="#0a0a0a">
+<title>Kettlebell Upper Body</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #1c1c1c;
+    --accent: #00c9ff;
+    --text: #f0f0f0;
+    --muted: #666;
+    --rest-color: #00c9a7;
+    --work-color: #00c9ff;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh; min-height: 100dvh;
+    overflow-x: hidden;
+    padding-top: var(--safe-top); padding-bottom: var(--safe-bottom);
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 12px; border-bottom: 1px solid #222;
+  }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: var(--accent); }
+  .badge { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+  .timer-section {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 28px 24px 20px;
+  }
+  .phase-label {
+    font-family: 'Bebas Neue', sans-serif; font-size: 16px;
+    letter-spacing: 5px; margin-bottom: 10px; transition: color 0.3s; color: var(--work-color);
+  }
+  .phase-label.rest { color: var(--rest-color); }
+
+  .circle-wrap { position: relative; width: 200px; height: 200px; }
+  svg.ring { width: 200px; height: 200px; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: #2a2a2a; stroke-width: 10; }
+  .ring-progress {
+    fill: none; stroke: var(--work-color); stroke-width: 10; stroke-linecap: round;
+    stroke-dasharray: 565; stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+  }
+  .ring-progress.rest { stroke: var(--rest-color); }
+
+  .timer-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .timer-digits { font-family: 'Bebas Neue', sans-serif; font-size: 72px; line-height: 1; color: var(--text); }
+  .timer-sub { font-size: 10px; color: var(--muted); letter-spacing: 2px; }
+
+  /* 系統バッジ */
+  .category-bar {
+    display: flex; gap: 8px; justify-content: center;
+    margin: 0 24px 0; padding: 10px 0;
+    border-bottom: 1px solid #1e1e1e;
+  }
+  .cat-badge {
+    font-size: 10px; padding: 3px 10px; border-radius: 20px;
+    letter-spacing: 1px; font-weight: 700;
+    background: #252525; color: var(--muted);
+    transition: all 0.3s;
+  }
+  .cat-badge.push  { background: rgba(255,100,50,0.15); color: #ff6432; }
+  .cat-badge.pull  { background: rgba(0,201,255,0.15);  color: #00c9ff; }
+  .cat-badge.shoulder { background: rgba(180,100,255,0.15); color: #b464ff; }
+  .cat-badge.core  { background: rgba(255,200,0,0.15);  color: #ffc800; }
+
+  .exercise-card {
+    background: var(--card); border: 1px solid #2a2a2a; border-radius: 16px;
+    padding: 18px 20px; margin: 14px 24px 0; position: relative; overflow: hidden;
+  }
+  .exercise-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    border-radius: 4px 0 0 4px; background: var(--accent);
+  }
+  .exercise-card.rest-card::before { background: var(--rest-color); }
+  .exercise-card.push::before  { background: #ff6432; }
+  .exercise-card.pull::before  { background: #00c9ff; }
+  .exercise-card.shoulder::before { background: #b464ff; }
+  .exercise-card.core::before  { background: #ffc800; }
+
+  .ex-number { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: #2a2a2a; position: absolute; right: 14px; top: 8px; line-height: 1; }
+  .ex-block-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase; }
+  .ex-name { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; line-height: 1.1; color: var(--text); }
+  .ex-name-jp { font-size: 12px; color: var(--muted); margin-top: 2px; margin-bottom: 8px; }
+  .ex-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: #252525; color: var(--muted); }
+  .tag.primary { background: rgba(0,201,255,0.12); color: var(--accent); }
+
+  .next-up { margin: 12px 24px 0; display: flex; align-items: center; gap: 10px; opacity: 0.5; }
+  .next-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; white-space: nowrap; }
+  .next-name { font-size: 13px; color: var(--text); font-weight: 700; }
+
+  .progress-section { margin: 14px 24px 0; display: flex; align-items: center; gap: 10px; }
+  .progress-dots { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #2a2a2a; transition: background 0.3s; }
+  .dot.done { background: var(--accent); }
+  .dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .progress-text { font-size: 11px; color: var(--muted); white-space: nowrap; letter-spacing: 1px; }
+
+  .set-info { display: flex; justify-content: space-between; padding: 10px 24px; margin-top: 10px; }
+  .set-stat { text-align: center; }
+  .set-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); display: block; }
+  .set-stat-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+  .controls { display: flex; justify-content: center; gap: 16px; padding: 16px 24px 24px; }
+  .btn { border: none; cursor: pointer; border-radius: 50px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+  .btn-main { background: var(--accent); color: #000; font-size: 18px; padding: 14px 40px; flex: 1; max-width: 200px; }
+  .btn-main:active { transform: scale(0.96); }
+  .btn-sub { background: var(--card); color: var(--text); font-size: 15px; padding: 14px 22px; border: 1px solid #2a2a2a; }
+  .btn-sub:active { transform: scale(0.96); }
+
+  .list-section { padding: 0 24px 32px; border-top: 1px solid #1e1e1e; margin-top: 8px; padding-top: 16px; }
+  .list-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: var(--muted); margin-bottom: 10px; }
+  .list-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #1a1a1a; gap: 12px; opacity: 0.55; transition: opacity 0.3s; }
+  .list-item.current { opacity: 1; }
+  .list-item.done-item { opacity: 0.3; }
+  .list-num { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--muted); width: 22px; text-align: right; flex-shrink: 0; }
+  .list-item.current .list-num { color: var(--accent); }
+  .list-info { flex: 1; }
+  .list-name { font-size: 13px; font-weight: 700; }
+  .list-detail { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .list-cat {
+    font-size: 9px; padding: 2px 7px; border-radius: 10px; flex-shrink: 0;
+    font-weight: 700; letter-spacing: 0.5px;
+  }
+  .list-cat.push  { background: rgba(255,100,50,0.15); color: #ff6432; }
+  .list-cat.pull  { background: rgba(0,201,255,0.15);  color: #00c9ff; }
+  .list-cat.shoulder { background: rgba(180,100,255,0.15); color: #b464ff; }
+  .list-cat.core  { background: rgba(255,200,0,0.15);  color: #ffc800; }
+
+  .finished-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 100;
+    flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  }
+  .finished-overlay.show { display: flex; }
+  .finished-title { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: var(--accent); letter-spacing: 4px; animation: pop 0.5s ease; }
+  .finished-sub { font-size: 14px; color: var(--muted); letter-spacing: 2px; }
+  .finished-stats { display: flex; gap: 36px; margin: 16px 0; }
+  .finished-stat { text-align: center; }
+  .finished-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--text); display: block; }
+  .finished-stat-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  @keyframes pop { 0%{transform:scale(0.7);opacity:0} 80%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+
+  .flash { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.1s; }
+  .flash.work { background: rgba(0,201,255,0.06); }
+  .flash.rest { background: rgba(0,201,167,0.06); }
+  .flash.show { opacity: 1; }
+
+  #installBanner { display: none; background: #1c1c1c; border-top: 1px solid #2a2a2a; padding: 10px 24px; align-items: center; justify-content: space-between; gap: 12px; }
+  #installBanner.show { display: flex; }
+  .install-text { font-size: 12px; color: var(--muted); }
+  .install-text strong { color: var(--text); }
+  .btn-install { background: var(--accent); color: #000; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1px; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; white-space: nowrap; }
+  .btn-dismiss { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; }
+</style>
+</head>
+<body>
+
+<div class="flash" id="flash"></div>
+
+<header>
+  <div class="logo">KB UPPER</div>
+  <div class="badge">12 kg · Upper Body · 40/30 · 10種目</div>
+</header>
+
+<div id="installBanner">
+  <div class="install-text"><strong>ホーム画面に追加</strong>してアプリとして使う</div>
+  <button class="btn-install" id="installBtn">追加</button>
+  <button class="btn-dismiss" id="dismissBtn">✕</button>
+</div>
+
+<!-- 系統バッジ -->
+<div class="category-bar">
+  <span class="cat-badge push">押す</span>
+  <span class="cat-badge pull">引く</span>
+  <span class="cat-badge shoulder">肩</span>
+  <span class="cat-badge core">体幹</span>
+</div>
+
+<div class="timer-section">
+  <div class="phase-label" id="phaseLabel">WORK</div>
+  <div class="circle-wrap">
+    <svg class="ring" viewBox="0 0 200 200">
+      <circle class="ring-track" cx="100" cy="100" r="90"/>
+      <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="90"/>
+    </svg>
+    <div class="timer-inner">
+      <div class="timer-digits" id="timerDigits">0:40</div>
+      <div class="timer-sub" id="timerSub">WORK TIME</div>
+    </div>
+  </div>
+</div>
+
+<div class="exercise-card" id="exCard">
+  <div class="ex-number" id="exNumber">1</div>
+  <div class="ex-block-label">現在のエクサ</div>
+  <div class="ex-name" id="exName">CLEAN & PRESS</div>
+  <div class="ex-name-jp" id="exNameJp">クリーン＆プレス（右）</div>
+  <div class="ex-tags" id="exTags"></div>
+</div>
+
+<div class="next-up">
+  <div class="next-label">NEXT →</div>
+  <div class="next-name" id="nextName">—</div>
+</div>
+
+<div class="progress-section">
+  <div class="progress-dots" id="progressDots"></div>
+  <div class="progress-text" id="progressText">1 / 10</div>
+</div>
+
+<div class="set-info">
+  <div class="set-stat">
+    <span class="set-stat-val" id="setVal">1</span>
+    <span class="set-stat-label">セット</span>
+  </div>
+  <div class="set-stat">
+    <span class="set-stat-val">3</span>
+    <span class="set-stat-label">/ 3 セット</span>
+  </div>
+  <div class="set-stat">
+    <span class="set-stat-val" id="elapsedVal">0:00</span>
+    <span class="set-stat-label">経過時間</span>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-sub" onclick="resetWorkout()">リセット</button>
+  <button class="btn btn-main" id="startBtn" onclick="toggleStartPause()">スタート</button>
+  <button class="btn btn-sub" onclick="skipPhase()">スキップ</button>
+</div>
+
+<div class="list-section">
+  <div class="list-title">エクササイズ一覧</div>
+  <div id="exerciseList"></div>
+</div>
+
+<div class="finished-overlay" id="finishedOverlay">
+  <div class="finished-title">完了！</div>
+  <div class="finished-sub">UPPER BODY COMPLETE</div>
+  <div class="finished-stats">
+    <div class="finished-stat">
+      <span class="finished-stat-val" id="finTotalTime">—</span>
+      <span class="finished-stat-label">合計時間</span>
+    </div>
+    <div class="finished-stat">
+      <span class="finished-stat-val" id="finExCount">—</span>
+      <span class="finished-stat-label">セット数</span>
+    </div>
+  </div>
+  <button class="btn btn-main" onclick="resetWorkout(); document.getElementById('finishedOverlay').classList.remove('show')">もう一度</button>
+</div>
+
+<script>
+// ── PWA ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').classList.remove('show');
+});
+document.getElementById('dismissBtn').addEventListener('click', () => {
+  document.getElementById('installBanner').classList.remove('show');
+});
+
+// ── WORKOUT DATA ──
+// cat: push / pull / shoulder / core
+const EXERCISES = [
+  { name: "Clean & Press (R)",      jp: "クリーン＆プレス（右）",      muscle: "肩・三頭・体幹",   tags: ["押す", "全身連動"], focus: "primary", cat: "push" },
+  { name: "Clean & Press (L)",      jp: "クリーン＆プレス（左）",      muscle: "肩・三頭・体幹",   tags: ["押す", "全身連動"], focus: "",        cat: "push" },
+  { name: "Bent-over Row (R)",      jp: "ベントオーバーロウ（右）",    muscle: "広背筋・菱形筋",   tags: ["引く", "姿勢改善"], focus: "primary", cat: "pull" },
+  { name: "Bent-over Row (L)",      jp: "ベントオーバーロウ（左）",    muscle: "広背筋・菱形筋",   tags: ["引く", "姿勢改善"], focus: "",        cat: "pull" },
+  { name: "High Pull (R)",          jp: "ハイプル（右）",               muscle: "肩・僧帽筋・上背", tags: ["引く", "爆発力"],   focus: "primary", cat: "pull" },
+  { name: "High Pull (L)",          jp: "ハイプル（左）",               muscle: "肩・僧帽筋・上背", tags: ["引く", "爆発力"],   focus: "",        cat: "pull" },
+  { name: "Upright Row",            jp: "アップライトロウ",             muscle: "三角筋・僧帽筋",   tags: ["肩", "引く"],       focus: "primary", cat: "shoulder" },
+  { name: "Kettlebell Halo",        jp: "ケトルベル・ハロー",           muscle: "肩・胸・体幹",     tags: ["肩", "可動域"],     focus: "",        cat: "shoulder" },
+  { name: "Suitcase Carry (R)",     jp: "スーツケースキャリー（右）",  muscle: "体幹・腰方形筋",   tags: ["体幹", "片側安定"], focus: "",        cat: "core" },
+  { name: "Suitcase Carry (L)",     jp: "スーツケースキャリー（左）",  muscle: "体幹・腰方形筋",   tags: ["体幹", "片側安定"], focus: "",        cat: "core" },
+];
+
+const WORK = 40, REST = 30, TOTAL_SETS = 3;
+const circumference = 2 * Math.PI * 90;
+
+let currentExIdx = 0, currentSet = 1, isWork = true;
+let timeLeft = WORK, isRunning = false;
+let interval = null, elapsedSeconds = 0, elapsedInterval = null;
+let totalCompletedSets = 0;
+
+// ── AUDIO ──
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beep({ freq=880, duration=0.12, gain=0.5, delay=0 }={}) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime + delay);
+    g.gain.linearRampToValueAtTime(gain, ctx.currentTime + delay + 0.01);
+    g.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration + 0.05);
+  } catch(e) {}
+}
+function soundWarning() { beep({ freq:1046, duration:0.1, gain:0.4 }); }
+function soundWorkEnd() {
+  beep({ freq:1318, duration:0.12, gain:0.6, delay:0 });
+  beep({ freq:1318, duration:0.12, gain:0.6, delay:0.18 });
+}
+function soundRestEnd() {
+  beep({ freq:880, duration:0.1, gain:0.5, delay:0 });
+  beep({ freq:1318, duration:0.18, gain:0.7, delay:0.14 });
+}
+function soundComplete() {
+  beep({ freq:1046, duration:0.15, gain:0.6, delay:0 });
+  beep({ freq:1318, duration:0.15, gain:0.6, delay:0.2 });
+  beep({ freq:1568, duration:0.3,  gain:0.7, delay:0.4 });
+}
+
+function formatTime(s) { return `0:${s<10?'0':''}${s}`; }
+function formatElapsed(s) {
+  const m = Math.floor(s/60), sec = s%60;
+  return `${m}:${sec<10?'0':''}${sec}`;
+}
+
+function buildList() {
+  const list = document.getElementById('exerciseList');
+  list.innerHTML = '';
+  EXERCISES.forEach((ex, i) => {
+    const item = document.createElement('div');
+    item.className = 'list-item' + (i===0?' current':'');
+    item.id = 'listItem'+i;
+    item.innerHTML = `
+      <div class="list-num">${i+1}</div>
+      <div class="list-info">
+        <div class="list-name">${ex.name}</div>
+        <div class="list-detail">${ex.jp}</div>
+      </div>
+      <span class="list-cat ${ex.cat}">${ex.cat==='push'?'押す':ex.cat==='pull'?'引く':ex.cat==='shoulder'?'肩':'体幹'}</span>`;
+    list.appendChild(item);
+  });
+}
+
+function buildDots() {
+  const dots = document.getElementById('progressDots');
+  dots.innerHTML = '';
+  EXERCISES.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'dot'+(i===0?' active':'');
+    dot.id = 'dot'+i;
+    dots.appendChild(dot);
+  });
+}
+
+function updateUI() {
+  const ex = EXERCISES[currentExIdx];
+  const nextEx = EXERCISES[(currentExIdx+1) % EXERCISES.length];
+  const phaseLabel = document.getElementById('phaseLabel');
+  const ringProgress = document.getElementById('ringProgress');
+  const exCard = document.getElementById('exCard');
+
+  if (!isWork) {
+    phaseLabel.textContent = 'REST'; phaseLabel.className = 'phase-label rest';
+    ringProgress.className = 'ring-progress rest';
+    document.getElementById('timerSub').textContent = 'REST TIME';
+    exCard.className = 'exercise-card rest-card';
+  } else {
+    phaseLabel.textContent = 'WORK'; phaseLabel.className = 'phase-label';
+    ringProgress.className = 'ring-progress';
+    document.getElementById('timerSub').textContent = 'WORK TIME';
+    exCard.className = `exercise-card ${ex.cat}`;
+  }
+
+  const total = isWork ? WORK : REST;
+  ringProgress.style.strokeDashoffset = circumference * (1 - timeLeft/total);
+  document.getElementById('timerDigits').textContent = formatTime(timeLeft);
+  document.getElementById('exNumber').textContent = currentExIdx+1;
+  document.getElementById('exName').textContent = ex.name;
+
+  // ハロー方向ヒント
+  let jpText = ex.jp;
+  if (ex.name === 'Kettlebell Halo' && isWork) {
+    const elapsed = WORK - timeLeft;
+    jpText += elapsed < WORK/2 ? '　🔄 時計回り' : '　🔁 反時計回り';
+  }
+  document.getElementById('exNameJp').textContent = jpText;
+  document.getElementById('exTags').innerHTML =
+    ex.tags.map((t,i) => `<span class="tag${i===0&&ex.focus==='primary'?' primary':''}">${t}</span>`).join('');
+  document.getElementById('nextName').textContent = isWork
+    ? `次: REST (${REST}秒)` : `次: ${nextEx.jp}`;
+  document.getElementById('progressText').textContent = `${currentExIdx+1} / ${EXERCISES.length}`;
+
+  EXERCISES.forEach((_,i) => {
+    const dot = document.getElementById('dot'+i);
+    if (dot) dot.className = 'dot'+(i<currentExIdx?' done':i===currentExIdx?' active':'');
+    const item = document.getElementById('listItem'+i);
+    if (item) item.className = 'list-item'+(i<currentExIdx?' done-item':i===currentExIdx?' current':'');
+  });
+
+  document.getElementById('setVal').textContent = currentSet;
+  document.getElementById('elapsedVal').textContent = formatElapsed(elapsedSeconds);
+}
+
+function flash(type) {
+  const el = document.getElementById('flash');
+  el.className = `flash ${type} show`;
+  setTimeout(() => el.className = `flash ${type}`, 200);
+}
+
+function tick() {
+  timeLeft--;
+  if (timeLeft === 5) soundWarning();
+  if (timeLeft < 0) {
+    if (isWork) {
+      soundWorkEnd(); isWork = false; timeLeft = REST; flash('rest');
+    } else {
+      currentExIdx++;
+      if (currentExIdx >= EXERCISES.length) {
+        totalCompletedSets++;
+        if (currentSet >= TOTAL_SETS) {
+          clearInterval(interval); clearInterval(elapsedInterval);
+          isRunning = false; soundComplete();
+          document.getElementById('finTotalTime').textContent = formatElapsed(elapsedSeconds);
+          document.getElementById('finExCount').textContent = EXERCISES.length * TOTAL_SETS;
+          document.getElementById('finishedOverlay').classList.add('show');
+          return;
+        }
+        currentSet++; currentExIdx = 0;
+      }
+      soundRestEnd(); isWork = true; timeLeft = WORK; flash('work');
+    }
+  }
+  updateUI();
+}
+
+function toggleStartPause() {
+  const btn = document.getElementById('startBtn');
+  if (isRunning) {
+    clearInterval(interval); clearInterval(elapsedInterval);
+    isRunning = false; btn.textContent = 'つづける';
+  } else {
+    interval = setInterval(tick, 1000);
+    elapsedInterval = setInterval(() => {
+      elapsedSeconds++;
+      document.getElementById('elapsedVal').textContent = formatElapsed(elapsedSeconds);
+    }, 1000);
+    isRunning = true; btn.textContent = 'ポーズ';
+  }
+}
+
+function skipPhase() {
+  timeLeft = 0;
+  if (!isRunning) { tick(); updateUI(); }
+}
+
+function resetWorkout() {
+  clearInterval(interval); clearInterval(elapsedInterval);
+  isRunning = false; currentExIdx = 0; currentSet = 1;
+  isWork = true; timeLeft = WORK; elapsedSeconds = 0; totalCompletedSets = 0;
+  document.getElementById('startBtn').textContent = 'スタート';
+  buildDots(); buildList(); updateUI();
+}
+
+buildList(); buildDots(); updateUI();
+</script>
+</body>
+</html>
