@@ -105,9 +105,9 @@
   .tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: #252525; color: var(--muted); }
   .tag.primary { background: rgba(0,201,255,0.12); color: var(--accent); }
 
-  .next-up { margin: 12px 24px 0; display: flex; align-items: center; gap: 10px; opacity: 0.5; }
-  .next-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; white-space: nowrap; }
-  .next-name { font-size: 13px; color: var(--text); font-weight: 700; }
+  .next-up { margin: 12px 24px 0; display: flex; align-items: center; gap: 10px; opacity: 0.85; }
+  .next-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; white-space: nowrap; }
+  .next-name { font-size: 18px; color: var(--text); font-weight: 700; }
 
   .progress-section { margin: 14px 24px 0; display: flex; align-items: center; gap: 10px; }
   .progress-dots { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
@@ -244,6 +244,28 @@
     font-size: 12px; color: var(--muted);
   }
   .estimated-time strong { color: var(--text); }
+
+  .countdown-overlay {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.92);
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  }
+  .countdown-overlay.show { display: flex; }
+  .countdown-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 6px; color: var(--muted);
+  }
+  .countdown-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 120px; line-height: 1; color: var(--accent);
+    animation: countPop 1s ease infinite;
+  }
+  .countdown-sub { font-size: 13px; color: var(--muted); letter-spacing: 2px; }
+  @keyframes countPop {
+    0%   { transform: scale(1.2); opacity: 1; }
+    80%  { transform: scale(0.9); opacity: 0.6; }
+    100% { transform: scale(1.2); opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -326,6 +348,12 @@
 <div class="list-section">
   <div class="list-title">エクササイズ一覧</div>
   <div id="exerciseList"></div>
+</div>
+
+<div class="countdown-overlay" id="countdownOverlay">
+  <div class="countdown-label">GET READY</div>
+  <div class="countdown-number" id="countdownNumber">5</div>
+  <div class="countdown-sub">トレーニング開始まで…</div>
 </div>
 
 <div class="finished-overlay" id="finishedOverlay">
@@ -524,7 +552,7 @@ function tick() {
         totalCompletedSets++;
         if (currentSet >= TOTAL_SETS) {
           clearInterval(interval); clearInterval(elapsedInterval);
-          isRunning = false; soundComplete();
+          isRunning = false; soundComplete(); releaseWakeLock();
           document.getElementById('finTotalTime').textContent = formatElapsed(elapsedSeconds);
           document.getElementById('finExCount').textContent = EXERCISES.length * TOTAL_SETS;
           document.getElementById('finishedOverlay').classList.add('show');
@@ -538,18 +566,66 @@ function tick() {
   updateUI();
 }
 
+// ── WAKE LOCK ──
+let wakeLock = null;
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+  }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(()=>{}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', async () => {
+  if (wakeLock !== null && document.visibilityState === 'visible' && isRunning) {
+    await requestWakeLock();
+  }
+});
+
+// ── COUNTDOWN ──
+let countdownTimer = null;
+function startCountdown(callback) {
+  let count = 5;
+  const overlay = document.getElementById('countdownOverlay');
+  const numEl   = document.getElementById('countdownNumber');
+  overlay.classList.add('show');
+  numEl.textContent = count;
+  beep({ freq: 880, duration: 0.1, gain: 0.4 });
+  countdownTimer = setInterval(() => {
+    count--;
+    if (count <= 0) {
+      clearInterval(countdownTimer);
+      overlay.classList.remove('show');
+      callback();
+    } else {
+      numEl.textContent = count;
+      beep({ freq: 880, duration: 0.1, gain: 0.4 });
+    }
+  }, 1000);
+}
+
 function toggleStartPause() {
   const btn = document.getElementById('startBtn');
   if (isRunning) {
     clearInterval(interval); clearInterval(elapsedInterval);
     isRunning = false; btn.textContent = 'つづける';
+    releaseWakeLock();
   } else {
-    interval = setInterval(tick, 1000);
-    elapsedInterval = setInterval(() => {
-      elapsedSeconds++;
-      document.getElementById('elapsedVal').textContent = formatElapsed(elapsedSeconds);
-    }, 1000);
-    isRunning = true; btn.textContent = 'ポーズ';
+    const isFirstStart = elapsedSeconds === 0 && currentExIdx === 0 && currentSet === 1 && isWork && timeLeft === WORK;
+    const doStart = () => {
+      interval = setInterval(tick, 1000);
+      elapsedInterval = setInterval(() => {
+        elapsedSeconds++;
+        document.getElementById('elapsedVal').textContent = formatElapsed(elapsedSeconds);
+      }, 1000);
+      isRunning = true; btn.textContent = 'ポーズ';
+      requestWakeLock();
+    };
+    if (isFirstStart) {
+      startCountdown(doStart);
+    } else {
+      doStart();
+    }
   }
 }
 
@@ -560,6 +636,8 @@ function skipPhase() {
 
 function resetWorkout() {
   clearInterval(interval); clearInterval(elapsedInterval);
+  if (countdownTimer) { clearInterval(countdownTimer); document.getElementById('countdownOverlay').classList.remove('show'); }
+  releaseWakeLock();
   isRunning = false; currentExIdx = 0; currentSet = 1;
   isWork = true; timeLeft = WORK; elapsedSeconds = 0; totalCompletedSets = 0;
   document.getElementById('startBtn').textContent = 'スタート';
