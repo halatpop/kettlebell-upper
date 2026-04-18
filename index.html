@@ -105,9 +105,7 @@
   .tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: #252525; color: var(--muted); }
   .tag.primary { background: rgba(0,201,255,0.12); color: var(--accent); }
 
-  .next-up { margin: 12px 24px 0; display: flex; align-items: center; gap: 10px; opacity: 0.85; }
-  .next-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; white-space: nowrap; }
-  .next-name { font-size: 18px; color: var(--text); font-weight: 700; }
+
 
   .progress-section { margin: 14px 24px 0; display: flex; align-items: center; gap: 10px; }
   .progress-dots { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
@@ -308,16 +306,13 @@
 
 <div class="exercise-card" id="exCard">
   <div class="ex-number" id="exNumber">1</div>
-  <div class="ex-block-label">現在のエクサ</div>
+  <div class="ex-block-label" id="exBlockLabel">現在のエクササイズ</div>
   <div class="ex-name" id="exName">CLEAN & PRESS</div>
   <div class="ex-name-jp" id="exNameJp">クリーン＆プレス（右）</div>
   <div class="ex-tags" id="exTags"></div>
 </div>
 
-<div class="next-up">
-  <div class="next-label">NEXT →</div>
-  <div class="next-name" id="nextName">—</div>
-</div>
+
 
 <div class="progress-section">
   <div class="progress-dots" id="progressDots"></div>
@@ -510,17 +505,21 @@ function updateUI() {
   document.getElementById('exNumber').textContent = currentExIdx+1;
   document.getElementById('exName').textContent = ex.name;
 
-  // ハロー方向ヒント
-  let jpText = ex.jp;
-  if (ex.name === 'Kettlebell Halo' && isWork) {
+  // REST中は次のエクササイズをカードに表示
+  const displayEx = isWork ? ex : nextEx;
+  document.getElementById('exBlockLabel').textContent = isWork ? '現在のエクササイズ' : '次のエクササイズ';
+  document.getElementById('exNumber').textContent = isWork ? currentExIdx+1 : (currentExIdx+1) % EXERCISES.length + 1;
+  document.getElementById('exName').textContent = displayEx.name;
+
+  let jpText = displayEx.jp;
+  if (displayEx.name === 'Kettlebell Halo' && isWork) {
     const elapsed = WORK - timeLeft;
     jpText += elapsed < WORK/2 ? '　🔄 時計回り' : '　🔁 反時計回り';
   }
   document.getElementById('exNameJp').textContent = jpText;
   document.getElementById('exTags').innerHTML =
-    ex.tags.map((t,i) => `<span class="tag${i===0&&ex.focus==='primary'?' primary':''}">${t}</span>`).join('');
-  document.getElementById('nextName').textContent = isWork
-    ? `次: REST (${REST}秒)` : `次: ${nextEx.jp}`;
+    displayEx.tags.map((t,i) => `<span class="tag${i===0&&displayEx.focus==='primary'?' primary':''}">${t}</span>`).join('');
+
   document.getElementById('progressText').textContent = `${currentExIdx+1} / ${EXERCISES.length}`;
 
   EXERCISES.forEach((_,i) => {
